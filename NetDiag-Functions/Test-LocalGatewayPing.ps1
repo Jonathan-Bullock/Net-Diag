@@ -1,26 +1,21 @@
-﻿
-
+﻿#Function only currently works for IPv4 connections
 function Test-LocalGatewayPing {
     $gateways = (Get-NetRoute -DestinationPrefix "0.0.0.0/0").NextHop #Use this method to get Gateways since there are cases where devices might have more than one connection
-    $gatewayCount = $gateways.Count
-    $processed = 0
-    foreach ($gateway in $gateways) {
-        if ($gateway -and (Test-Connection -ComputerName $gateway -Count 2 -Quiet)) {
+    if ($gateways.Count -gt 1){Write-Warning "Device has multiple Gateways"}
+    if($gateways){
+    $gateways
+        foreach ($gateway in $gateways) {
+            (New-Object System.Net.NetworkInformation.Ping).Send($gateway) | ft Status, Address, RoundtripTime
+            }
+        }       
+    else {$result = $false}
 
-            $color = "Green"
-        } else {
-            $result += " - Gateway ${gateway}: FAILED`r`n"
-        }
-        $processed++
-        Update-Progress (30 + ($processed / $gatewayCount * 10)) "Testing Gateway $processed of $gatewayCount..."
-    }
-    Write-OutputBox $result $color
-    Update-Progress 100 "Local Gateway Test Complete"
-    return $success
+
+    return $results
 }
 
 
-----------------------------------------------------------------------
+<#----------------------------------------------------------------------#>
 function Test-LocalGatewayPing {
     Update-Progress 30 "Testing Local Gateway Ping..."
     $physicalConnected = Test-PhysicalLink
