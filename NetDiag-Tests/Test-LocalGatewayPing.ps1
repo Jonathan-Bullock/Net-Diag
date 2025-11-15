@@ -18,14 +18,15 @@ function Test-LocalGatewayPing {
 <#----------------------------------------------------------------------#>
 function Test-LocalGatewayPing {
     Update-Progress 30 "Testing Local Gateway Ping..."
-    $physicalConnected = Test-PhysicalLink
-    if (-not $physicalConnected) {
-        $result = "Local Gateway Ping Test: SKIPPED`r`n - Reason: Physical link is disconnected.`r`n"
-        Write-OutputBox $result "Black"
-        Update-Progress 100 "Local Gateway Test Skipped"
-        return $false
-    }
-    
+    <# Commenting out this test for the time being since this test write out when it's ran and I want to keep flow structure simple for the time being.
+                $physicalConnected = Test-PhysicalLink
+                if (-not $physicalConnected) {
+                    $result = "Local Gateway Ping Test: SKIPPED`r`n - Reason: Physical link is disconnected.`r`n"
+                    Write-OutputBox $result "Black"
+                    Update-Progress 100 "Local Gateway Test Skipped"
+                    return $false
+                }
+    #>
     $gateways = (Get-NetRoute -DestinationPrefix "0.0.0.0/0").NextHop
     $result = "Local Gateway Ping Test:`r`n"
     $success = $false

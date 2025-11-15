@@ -1,5 +1,5 @@
 function Test-PublicDNS {
-    Update-Progress 85 "Testing Public DNS Resolution..."
+    Update-Status -Value 0 -StatusText "Testing Public DNS Resolution..."
     $result = "Public DNS Resolution Test:`r`n"
     $success = $false
     $color = "Red"
@@ -61,6 +61,6 @@ function Test-PublicDNS {
     }
     
     Write-OutputBox $result $color
-    Update-Progress 100 "Public DNS Test Complete"
+    Update-Status -Value 100 -StatusText "Public DNS Test Complete"
     return $success
 }

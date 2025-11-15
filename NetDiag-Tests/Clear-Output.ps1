@@ -5,7 +5,7 @@ $clearButton.Text = "Clear Output"
 $clearButton.TextAlign = "MiddleCenter"
 $clearButton.Add_Click({ 
     $outputBox.Clear()
-    Update-Progress 0 "Idle"
+    Update-Status -Value 0 -StatusText "Idle"
     $statusLabel.Text = "Status: Idle"
 })
 $buttonPanel.Controls.Add($clearButton)

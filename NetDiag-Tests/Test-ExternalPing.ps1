@@ -1,6 +1,6 @@
 
 function Test-ExternalPing {
-    Update-Progress 95 "Testing External Ping..."
+    Update-status 95 "Testing External Ping..."
     $result = "External Ping Test:`r`n"
     $success = $false
     $color = "Red"
@@ -16,6 +16,6 @@ function Test-ExternalPing {
         }
     }
     Write-OutputBox $result $color
-    Update-Progress 100 "External Ping Test Complete"
+    Update-status 100 "External Ping Test Complete"
     return $success
 }

@@ -1,5 +1,5 @@
 function Test-DNSServersPerInterface {
-    Update-Progress 25 "Testing DNS Servers per Interface..."
+    Update-Status -Value 0 -StatusText "Testing DNS Servers per Interface..."
     $result = "DNS Servers Test per Interface:`r`n"
     $success = $false
     $color = "Red"
@@ -25,6 +25,6 @@ function Test-DNSServersPerInterface {
         $result += "`r`n"
     }
     Write-OutputBox $result $color
-    Update-Progress 100 "DNS Servers Test Complete"
+    Update-Status -Value 100 -StatusText "DNS Servers Test Complete"
     return $success
 }

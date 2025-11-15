@@ -5,6 +5,7 @@ $form.Size = New-Object System.Drawing.Size(800, 650)
 $form.MinimumSize = New-Object System.Drawing.Size(600, 650)
 $form.StartPosition = "CenterScreen"
 
+
 # Create a progress bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
 $progressBar.Location = New-Object System.Drawing.Point(10, 15)
@@ -32,6 +33,7 @@ $outputBox.ScrollBars = "Vertical"
 $outputBox.ReadOnly = $true
 $outputBox.Anchor = "Top,Left,Right,Bottom"
 $form.Controls.Add($outputBox)
+$outputBox.Font = New-Object System.Drawing.Font("Consolas", 10) #Needed to make tables columns to allign
 
 
 # Create a FlowLayoutPanel for buttons to handle layout dynamically
@@ -67,17 +69,16 @@ function Write-OutputBox {
 }
 
 # Function to update progress bar and status
-function Update-Progress {
+function Update-Status {
     param($Value, $StatusText)
     $progressBar.Value = $Value
     $statusLabel.Text = "Status: $StatusText"
     $form.Refresh()
 }
 
-Update-Progress -Value 100 -StatusText "Test Status"
 
 
-Write-OutputBox -Text "Select Test to run." -Color "Blue"
+
 
 # Network Diagnostic Functions
 <#Logic that needs coded for Dependant functions
@@ -87,19 +88,30 @@ need to make sure to structure tests at most local connection and then  work out
 IF GW is down it's not likely that external ping would work since it's not up. Could be that the local Gateway doesn't respond to ping?
 #>
 
+    Update-Status -Value 0 -StatusText "Loading Functions..."
+    Write-OutputBox -Text "Loading Test Functions..." -Color "Blue"
 
+    #MEthod 1 of dot sourcing
+    $Path = '.\NetDiag-Tests\'
+    $Functions = Get-Item -Path "$Path\*.ps1" # Get all .ps1 files in the specified directory
+    foreach ($Function in $Functions) {
+        $Function.FullName #Used for Diagnostic to show full file path of the called function
+        . "$($Path + $($Function.Name))" # Dot-source each file using the full path
+     }
 
-#MEthod 1 of dot sourcing
-$Path = '.\NetDiag-Tests\'
-$Functions = Get-Item -Path "$Path\*.ps1" # Get all .ps1 files in the specified directory
-foreach ($Function in $Functions) {
-    $Function.FullName #Used for Diagnostic to show full file path of the called function
-    . "$($Path + $($Function.Name))" # Dot-source each file using the full path
- }
+    $outputBox.Clear()
+    Update-Status -Value 100 -StatusText "Ready"
+    Write-OutputBox -Text "Select Test to run." -Color "Blue"
 
+    <# Create buttons for individual tests
+    $tests = @() #initualize perameter list for test functions
+    $tests = @(
+        foreach ($Function in $Functions) {
+            @{Name=$Function; Func={$Function}}
+        }
+    )#>
 
-
-# Create buttons for individual tests
+    # Create buttons for individual tests
 $tests = @(
     @{Name="Physical Link"; Func={Test-PhysicalLink}},
     @{Name="Local Gateway Ping"; Func={Test-LocalGatewayPing}},
@@ -108,8 +120,10 @@ $tests = @(
     @{Name="Public DNS"; Func={Test-PublicDNS}},
     @{Name="DNS Servers"; Func={Test-DNSServersPerInterface}},
     @{Name="External Ping"; Func={Test-ExternalPing}},
+    @{Name="Cloud Services"; Func={Test-CloudServices}},
     @{Name="Port Connectivity"; Func={Test-PortConnectivity}}
 )
+
 
 
 foreach ($test in $tests) {
@@ -120,11 +134,6 @@ foreach ($test in $tests) {
     $button.Add_Click($test.Func)
     $buttonPanel.Controls.Add($button)
 }
-
-
-
-
-
 
 
 
