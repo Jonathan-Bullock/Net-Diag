@@ -74,10 +74,10 @@ function Update-Progress {
     $form.Refresh()
 }
 
-Update-Progress -Value 30 -StatusText "Test Status"
+Update-Progress -Value 100 -StatusText "Test Status"
 
 
-Write-OutputBox -Text "Hellow World!" -Color "Blue"
+Write-OutputBox -Text "Select Test to run." -Color "Blue"
 
 # Network Diagnostic Functions
 <#Logic that needs coded for Dependant functions
@@ -93,16 +93,10 @@ IF GW is down it's not likely that external ping would work since it's not up. C
 $Path = '.\NetDiag-Tests\'
 $Functions = Get-Item -Path "$Path\*.ps1" # Get all .ps1 files in the specified directory
 foreach ($Function in $Functions) {
+    $Function.FullName #Used for Diagnostic to show full file path of the called function
     . "$($Path + $($Function.Name))" # Dot-source each file using the full path
-}
+ }
 
-#method 2 of Dot Sourcing
-$Path = '.\NetDiag-Tests'
-$Functions = Get-Item -Path "$Path\*.ps1"
-foreach ($Function in $Functions) {
-$Function.FullName
-    & { . "$($Function.FullName)" } # Runs in a new script block, but functions aren't exported to current scope
-}
 
 
 # Create buttons for individual tests

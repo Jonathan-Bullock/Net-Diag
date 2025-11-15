@@ -48,5 +48,3 @@ function Test-LocalGatewayPing {
     Update-Progress 100 "Local Gateway Test Complete"
     return $success
 }
-
-Export-ModuleMember -Function Test-LocalGatewayPing

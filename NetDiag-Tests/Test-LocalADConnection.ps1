@@ -1,4 +1,5 @@
     # Test AD domain if joined
+function Test-LocalADConnection {
     try {
         $domain = (Get-WmiObject Win32_ComputerSystem).Domain
         if ($domain -and $domain -ne "WORKGROUP") {
