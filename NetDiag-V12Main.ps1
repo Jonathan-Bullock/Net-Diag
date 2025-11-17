@@ -1,4 +1,6 @@
-﻿# Create the main form
+﻿cd "C:\GitRepo\Net-Diag\Net-Diag" #used for testing
+
+# Create the main form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Network Diagnostics Tool"
 $form.Size = New-Object System.Drawing.Size(800, 650)
@@ -118,7 +120,7 @@ $tests = @(
     @{Name="ISP Gateway Ping"; Func={Test-ISPGatewayPing}},
     @{Name="Local DNS"; Func={Test-LocalDNS}},
     @{Name="Public DNS"; Func={Test-PublicDNS}},
-    @{Name="DNS Servers"; Func={Test-DNSServersPerInterface}},
+    @{Name="All Interface DNS"; Func={Test-DNSServersPerInterface}},
     @{Name="External Ping"; Func={Test-ExternalPing}},
     @{Name="Cloud Services"; Func={Test-CloudServices}},
     @{Name="Port Connectivity"; Func={Test-PortConnectivity}}
