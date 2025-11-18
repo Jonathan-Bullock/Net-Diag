@@ -1,11 +1,14 @@
 ﻿#Function only currently works for IPv4 connections
+
+<# Developing Replacement simplified Function with custom ICMP client and continual GUI Update for improved user experiance
 function Test-LocalGatewayPing {
-    $gateways = (Get-NetRoute -DestinationPrefix "0.0.0.0/0").NextHop #Use this method to get Gateways since there are cases where devices might have more than one connection
-    if ($gateways.Count -gt 1){Write-Warning "Device has multiple Gateways"}
+     Update-Status -Value 20 -StatusText "Testing Gateway Ping..."
+    $gateways = (Get-NetRoute -DestinationPrefix "0.0.0.0/0").NextHop #Use this method to get Gateways since there are cases where devices might have more than one connection. This uses the Default/Primary Route.
+    if ($gateways.Count -gt 1){Write-OutputBox -Text "Device has multiple Gateways" -Color "Orange"}
     if($gateways){
     $gateways
         foreach ($gateway in $gateways) {
-            (New-Object System.Net.NetworkInformation.Ping).Send($gateway) | ft Status, Address, RoundtripTime
+            (New-Object System.Net.NetworkInformation.Ping).Send($gateway) | Format-Table Status, Address, RoundtripTime
             }
         }       
     else {$result = $false}
@@ -15,9 +18,25 @@ function Test-LocalGatewayPing {
 }
 
 
+    foreach ($item in $gateways) {
+        $pingObject = $null
+        try {
+            $pingObject = New-Object System.Net.NetworkInformation.Ping
+            # Use $item.Target for ping
+            ($pingReply = $pingObject.Send($item.Target, 200)) | Out-Null # 200ms timeout 
+            Write-OutputBox -text $pingReply -Color "black"
+        }
+        finally {
+            if ($pingObject -ne $null) {
+                $pingObject.Dispose()
+            }
+        }
+    }
+#>
+
 <#----------------------------------------------------------------------#>
 function Test-LocalGatewayPing {
-    Update-Progress 30 "Testing Local Gateway Ping..."
+    Update-Status -Value 30 -Text "Testing Local Gateway Ping..."
     <# Commenting out this test for the time being since this test write out when it's ran and I want to keep flow structure simple for the time being.
                 $physicalConnected = Test-PhysicalLink
                 if (-not $physicalConnected) {
@@ -43,9 +62,9 @@ function Test-LocalGatewayPing {
             $result += " - Gateway ${gateway}: FAILED`r`n"
         }
         $processed++
-        Update-Progress (30 + ($processed / $gatewayCount * 10)) "Testing Gateway $processed of $gatewayCount..."
+        Update-status -Value (30 + ($processed / $gatewayCount * 10)) -Text "Testing Gateway $processed of $gatewayCount..."
     }
     Write-OutputBox $result $color
-    Update-Progress 100 "Local Gateway Test Complete"
+    Update-status -value 100 -Text "Local Gateway Test Complete"
     return $success
 }

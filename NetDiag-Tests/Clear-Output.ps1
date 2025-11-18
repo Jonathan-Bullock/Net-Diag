@@ -7,5 +7,7 @@ $clearButton.Add_Click({
     $outputBox.Clear()
     Update-Status -Value 0 -StatusText "Idle"
     $statusLabel.Text = "Status: Idle"
+Clear-Host
+
 })
 $buttonPanel.Controls.Add($clearButton)
