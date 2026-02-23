@@ -7,7 +7,7 @@ Update-Status -Value 0 -StatusText "Testing Physical Link..."
         
         }
     else {$success = $false
-            Write-Error "All Network Interfaces are down"}
+            Write-outputbox -text "All Network Interfaces are down" -Color red}
 
 Update-Status -Value 100 -StatusText "Testing Physical Link complete"
         return $success
