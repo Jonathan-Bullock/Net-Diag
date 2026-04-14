@@ -1,3 +1,4 @@
+cls
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -386,6 +387,15 @@ function Test-PortConnectivity {
     return $success
 }
 
+function Get-IPConfig {
+$addapter = Get-NetAdapter 
+Write-OutputBox "Interface Information: " Green
+Write-OutputBox ($addapter | Where-Object -Property status -EQ up | format-list Name,MediaConnectionState,MacAddress,LinkSpeed,SystemName,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() Black
+write-outputbox (Get-NetIPConfiguration | Out-String -replace '\s+', ' ').Trim() black
+Write-OutputBox ("Down Interfaces: ") black
+Write-OutputBox ($addapter | Where-Object -Property status -NE up | format-list Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() black
+}
+
 <#-----------------------------------------Grouped Function Tests----------------------------------------#>
 function Test-DNS {
 Test-DNSServersPerInterface 
@@ -401,6 +411,7 @@ Test-DNSServersPerInterface}
 
 # Create buttons for individual tests
 $tests = @(
+    @{Name="IP Configuration"; Func={Get-IPConfig}},
     @{Name="Physical Link"; Func={Test-PhysicalLink}},
     @{Name="GateWay"; Func={Test-GateWay}},
     @{Name="DNS"; Func={Test-DNS}},
