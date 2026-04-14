@@ -298,6 +298,11 @@ function Test-PublicDNS {
     return $success
 }
 
+function Test-DNS {
+Test-DNSServersPerInterface 
+Test-LocalDNS
+Test-DNSServersPerInterface}
+
 function Test-ExternalPing {
     Update-Progress 95 "Testing External Ping..."
     $result = "External Ping Test:`r`n"
@@ -324,7 +329,7 @@ function Test-DNSServersPerInterface {
     $result = "DNS Servers Test per Interface:`r`n"
     $success = $false
     $color = "Red"
-    $interfaces = Get-NetIPConfiguration
+    $interfaces = Get-NetIPConfiguration | Where-Object { $_.NetAdapter.Status -ne "Disconnected" }
     
     foreach ($interface in $interfaces) {
         $result += "Interface: $($interface.InterfaceAlias)`r`n"
@@ -384,9 +389,7 @@ $tests = @(
     @{Name="Physical Link"; Func={Test-PhysicalLink}},
     @{Name="Local Gateway Ping"; Func={Test-LocalGatewayPing}},
     @{Name="ISP Gateway Ping"; Func={Test-ISPGatewayPing}},
-    @{Name="Local DNS"; Func={Test-LocalDNS}},
-    @{Name="Public DNS"; Func={Test-PublicDNS}},
-    @{Name="DNS Servers"; Func={Test-DNSServersPerInterface}},
+    @{Name="DNS"; Func={Test-DNS}},
     @{Name="External Ping"; Func={Test-ExternalPing}},
     @{Name="Port Connectivity"; Func={Test-PortConnectivity}}
 )

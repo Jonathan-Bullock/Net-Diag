@@ -1,0 +1,32 @@
+Grouping like Tests to single buttons. 
+Groupings:
+
+---------------DNS---------------
+DNS Loop back
+DHCP/Local Static Settings
+WAN DNS Resolution
+If part of a domain Environment (Joined) can DNS Resolution to the DC work
+DNS set by local Static IP?
+
+---------------Physical/Wi-Fi Connection---------------
+DHCP resolution
+IS local IP a WAN IP?
+has windows detected a DHCP Collision or other critical DHCP Error?
+
+
+
+
+
+---------------Local Network Connectivity---------------
+Can the device reach a switch or detect it using MED-LLDP?
+Is the local gateway pingable?
+Is the local serving DNS? are you able to reach the interface DNS Servers either WAN or Local IP's?
+
+
+
+
+---------------WAN Connectivity---------------
+Are common Web Servers reachable?
+Are well known DNS servers reachable?
+Are common services reachable on their standard ports? DNS on 53, Social media on 443,80
+ 
