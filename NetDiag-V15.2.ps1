@@ -2,7 +2,6 @@ cls
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-function Main-Form {
 # Create the main form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Network Diagnostics Tool"
@@ -12,7 +11,7 @@ $form.StartPosition = "CenterScreen"
 
 # Create a text output box (using RichTextBox for color coding)
 $outputBox = New-Object System.Windows.Forms.RichTextBox
-$outputBox.Location = New-Object System.Drawing.Point(10, 10)
+$outputBox.Location = New-Object System.Drawing.Point(10, 35)
 $outputBox.Size = New-Object System.Drawing.Size(560, 300)
 $outputBox.Multiline = $true
 $outputBox.ScrollBars = "Vertical"
@@ -22,7 +21,7 @@ $form.Controls.Add($outputBox)
 
 # Create a progress bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(10, 320)
+$progressBar.Location = New-Object System.Drawing.Point(10, 345)
 $progressBar.Size = New-Object System.Drawing.Size(560, 20)
 $progressBar.Minimum = 0
 $progressBar.Maximum = 100
@@ -32,7 +31,7 @@ $form.Controls.Add($progressBar)
 
 # Create a status label
 $statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Location = New-Object System.Drawing.Point(10, 350)
+$statusLabel.Location = New-Object System.Drawing.Point(10, 375)
 $statusLabel.Size = New-Object System.Drawing.Size(560, 20)
 $statusLabel.Text = "Status: Idle"
 $statusLabel.Anchor = "Bottom, Left, Right"
@@ -40,7 +39,7 @@ $form.Controls.Add($statusLabel)
 
 # Create a FlowLayoutPanel for buttons to handle layout dynamically
 $buttonPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-$buttonPanel.Location = New-Object System.Drawing.Point(10, 380)
+$buttonPanel.Location = New-Object System.Drawing.Point(10, 405)
 $buttonPanel.Size = New-Object System.Drawing.Size(560, 200)
 $buttonPanel.FlowDirection = "LeftToRight"
 $buttonPanel.WrapContents = $true
@@ -57,8 +56,7 @@ $creditLabel.AutoSize = $true
 $creditLabel.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 200), ($form.ClientSize.Height - 20))
 $creditLabel.Anchor = "Bottom,Right"
 $form.Controls.Add($creditLabel)
-}
-Main-Form #run main form
+
 
 # Function to append colored text to output box
 function Write-OutputBox {
@@ -78,6 +76,54 @@ function Update-Progress {
     $statusLabel.Text = "Status: $StatusText"
     $form.Refresh()
 }
+
+
+
+<#-----------------------------------------Menu Bar----------------------------------------#>
+# Create the Menu Bar
+$menuStrip = New-Object System.Windows.Forms.MenuStrip
+
+# 1. Advanced Menu
+$advancedMenu = New-Object System.Windows.Forms.ToolStripMenuItem
+$advancedMenu.Text = "&Advanced"
+
+$flushDnsItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$flushDnsItem.Text = "Flush DNS Cache"
+$flushDnsItem.Add_Click({ 
+    ipconfig /flushdns | Out-Null
+    Write-OutputBox "DNS Cache Flushed successfully." "Blue"
+})
+
+$IPConfig = New-Object System.Windows.Forms.ToolStripMenuItem
+$IPConfig.Text = "IP Configuration"
+$IPConfig.Add_Click({ 
+    Get-IPConfig
+})
+
+$advancedMenu.DropDownItems.Add($flushDnsItem)
+$advancedMenu.DropDownItems.Add($IPConfig)
+
+# 2. Credits Menu
+$creditsMenu = New-Object System.Windows.Forms.ToolStripMenuItem
+$creditsMenu.Text = "&Credits"
+$creditsMenu.Add_Click({
+    [System.Windows.Forms.MessageBox]::Show("NetDiag v14.0`nDeveloped by Jo-Labs`nWeb: jo-labs.tech", "About NetDiag")
+})
+
+# 3. Donations Menu
+$donationsMenu = New-Object System.Windows.Forms.ToolStripMenuItem
+$donationsMenu.Text = "&Donations"
+$donationsMenu.Add_Click({
+    # You can point this to a URL later
+    [System.Windows.Forms.MessageBox]::Show("Support for Jo-Labs is appreciated! Link coming soon.", "Donations")
+})
+
+# Add items to the strip and the strip to the form
+$menuStrip.Items.Add($advancedMenu) | Out-Null
+$menuStrip.Items.Add($creditsMenu) | Out-Null
+$menuStrip.Items.Add($donationsMenu) | Out-Null
+$form.MainMenuStrip = $menuStrip
+$form.Controls.Add($menuStrip)
 
 <#-----------------------------------------Individual Tests----------------------------------------#>
 
@@ -393,11 +439,18 @@ function Test-PortConnectivity {
 
 function Get-IPConfig {
 $addapter = Get-NetAdapter 
-Write-OutputBox "Interface Information: " Green
-Write-OutputBox ($addapter | Where-Object -Property status -EQ up | format-list Name,MediaConnectionState,MacAddress,LinkSpeed,SystemName,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() Black
-write-outputbox (Get-NetIPConfiguration | Out-String -replace '\s+', ' ').Trim() black
-Write-OutputBox ("Down Interfaces: ") black
-Write-OutputBox ($addapter | Where-Object -Property status -NE up | format-list Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() black
+    
+    Write-OutputBox "=== Up Interfaces ===" "Green"
+    $upAdapters = $addapter | Where-Object -Property status -EQ up | Format-List Name,MediaConnectionState,MacAddress,LinkSpeed,SystemName,InterfaceDescription | Out-String
+    Write-OutputBox $upAdapters "Black"
+    
+    Write-OutputBox "=== IP Configuration ===" "Blue"
+    $ipConfig = Get-NetIPConfiguration | Out-String
+    Write-OutputBox $ipConfig "Black"
+    
+    Write-OutputBox "=== Down Interfaces ===" "Red"
+    $downAdapters = $addapter | Where-Object -Property status -NE up | Format-List Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String
+    Write-OutputBox $downAdapters "Black"
 }
 
 <#-----------------------------------------Grouped Function Tests----------------------------------------#>
@@ -415,7 +468,7 @@ Test-DNSServersPerInterface}
 
 # Create buttons for individual tests
 $tests = @(
-    @{Name="IP Configuration"; Func={Get-IPConfig}},
+    #@{Name="IP Configuration"; Func={Get-IPConfig}}, #Commented out since this has been added under advanced in the ribon but noting it hear so it's included in the all tests  button function
     @{Name="Physical Link"; Func={Test-PhysicalLink}},
     @{Name="GateWay"; Func={Test-GateWay}},
     @{Name="DNS"; Func={Test-DNS}},
