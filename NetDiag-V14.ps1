@@ -1,3 +1,4 @@
+cls
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -74,6 +75,8 @@ function Update-Progress {
     $form.Refresh()
 }
 
+<#-----------------------------------------Individual Tests----------------------------------------#>
+
 # Network Diagnostic Functions
 function Test-PhysicalLink {
     Update-Progress 10 "Testing Physical Links..."
@@ -131,27 +134,30 @@ function Test-LocalGatewayPing {
 }
 
 function Test-ISPGatewayPing {
-    Update-Progress 50 "Testing ISP Gateway Ping..."
+    Update-Status -Value 0 -StatusText "Testing ISP Gateway WAN IP Ping..."
+    Write-OutputBox -Text "Connecting to https://ipinfo.io API to Get WAN IP address" -Color "black"
     try {
         $response = Invoke-WebRequest -Uri "https://ipinfo.io/json" -UseBasicParsing | ConvertFrom-Json
         $wanIP = $response.ip
         $isp = $response.org
-        $result = "ISP Gateway Ping Test:`r`n"
-        $result += " - WAN IP: ${wanIP}`r`n"
-        $result += " - ISP: ${isp}`r`n"
+        Write-OutputBox "ISP Gateway Ping Test:" Black
+        Write-OutputBox " - WAN IP: ${wanIP}" Black
+        Write-OutputBox " - ISP: ${isp}" Black
         $color = "Red"
+    Write-OutputBox -Text "Trying to Ping $($wanIP)" -Color "black"
         if (Test-Connection -ComputerName $wanIP -Count 2 -Quiet) {
             $result += " - WAN IP Ping: PASSED`r`n"
             $color = "Green"
         } else {
             $result += " - WAN IP Ping: FAILED`r`n"
+            $result += "Note: Failed Ping is expected for many business/Enterprise networks since they block this traffic`r`n"
         }
     } catch {
         $result = "ISP Gateway Ping Test: FAILED`r`nError retrieving ISP information: $_`r`n"
         $color = "Red"
     }
     Write-OutputBox $result $color
-    Update-Progress 100 "ISP Gateway Test Complete"
+    Update-Status -Value 100 -StatusText "Testing ISP Gateway Ping..."
     return $result.Contains("PASSED")
 }
 
@@ -298,6 +304,8 @@ function Test-PublicDNS {
     return $success
 }
 
+
+
 function Test-ExternalPing {
     Update-Progress 95 "Testing External Ping..."
     $result = "External Ping Test:`r`n"
@@ -324,7 +332,7 @@ function Test-DNSServersPerInterface {
     $result = "DNS Servers Test per Interface:`r`n"
     $success = $false
     $color = "Red"
-    $interfaces = Get-NetIPConfiguration
+    $interfaces = Get-NetIPConfiguration | Where-Object { $_.NetAdapter.Status -ne "Disconnected" }
     
     foreach ($interface in $interfaces) {
         $result += "Interface: $($interface.InterfaceAlias)`r`n"
@@ -379,14 +387,34 @@ function Test-PortConnectivity {
     return $success
 }
 
+function Get-IPConfig {
+$addapter = Get-NetAdapter 
+Write-OutputBox "Interface Information: " Green
+Write-OutputBox ($addapter | Where-Object -Property status -EQ up | format-list Name,MediaConnectionState,MacAddress,LinkSpeed,SystemName,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() Black
+write-outputbox (Get-NetIPConfiguration | Out-String -replace '\s+', ' ').Trim() black
+Write-OutputBox ("Down Interfaces: ") black
+Write-OutputBox ($addapter | Where-Object -Property status -NE up | format-list Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String -replace '\s+', ' ').Trim() black
+}
+
+<#-----------------------------------------Grouped Function Tests----------------------------------------#>
+function Test-DNS {
+Test-DNSServersPerInterface 
+Test-LocalDNS
+Test-DNSServersPerInterface}
+
+function Test-GateWay {
+Test-LocalGatewayPing
+Test-ISPGatewayPing
+
+Test-LocalDNS
+Test-DNSServersPerInterface}
+
 # Create buttons for individual tests
 $tests = @(
+    @{Name="IP Configuration"; Func={Get-IPConfig}},
     @{Name="Physical Link"; Func={Test-PhysicalLink}},
-    @{Name="Local Gateway Ping"; Func={Test-LocalGatewayPing}},
-    @{Name="ISP Gateway Ping"; Func={Test-ISPGatewayPing}},
-    @{Name="Local DNS"; Func={Test-LocalDNS}},
-    @{Name="Public DNS"; Func={Test-PublicDNS}},
-    @{Name="DNS Servers"; Func={Test-DNSServersPerInterface}},
+    @{Name="GateWay"; Func={Test-GateWay}},
+    @{Name="DNS"; Func={Test-DNS}},
     @{Name="External Ping"; Func={Test-ExternalPing}},
     @{Name="Port Connectivity"; Func={Test-PortConnectivity}}
 )
