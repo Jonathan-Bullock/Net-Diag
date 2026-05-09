@@ -18,6 +18,7 @@ $outputBox.ScrollBars = "Vertical"
 $outputBox.ReadOnly = $true
 $outputBox.Anchor = "Top,Left,Right,Bottom"
 $form.Controls.Add($outputBox)
+$outputBox.Font = New-Object System.Drawing.Font("Consolas", 10)
 
 # Create a progress bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
@@ -57,6 +58,12 @@ $creditLabel.Location = New-Object System.Drawing.Point(($form.ClientSize.Width 
 $creditLabel.Anchor = "Bottom,Right"
 $form.Controls.Add($creditLabel)
 
+# Create a ToolTip object for adding tooltips to controls
+$toolTip = New-Object System.Windows.Forms.ToolTip
+$toolTip.AutoPopDelay = 5000  # Time the tooltip remains visible (ms)
+$toolTip.InitialDelay = 500   # Time before tooltip appears (ms)
+$toolTip.ReshowDelay = 500    # Time before subsequent tooltips appear (ms)
+$toolTip.ShowAlways = $true   # Show tooltip even if control is disabled
 
 # Function to append colored text to output box
 function Write-OutputBox {
@@ -107,7 +114,7 @@ $advancedMenu.DropDownItems.Add($IPConfig)
 $creditsMenu = New-Object System.Windows.Forms.ToolStripMenuItem
 $creditsMenu.Text = "&Credits"
 $creditsMenu.Add_Click({
-    [System.Windows.Forms.MessageBox]::Show("NetDiag v14.0`nDeveloped by Jo-Labs`nWeb: jo-labs.tech", "About NetDiag")
+    [System.Windows.Forms.MessageBox]::Show("NetDiag `nDeveloped by Jo-Labs`nWeb: jo-labs.tech `n `nWAN IP Resolution by ipinfo.io", "About NetDiag")
 })
 
 # 3. Donations Menu
@@ -197,7 +204,7 @@ function Test-LocalGatewayPing {
 }
 
 function Test-ISPGatewayPing {
-    Update-Status -Value 0 -StatusText "Testing ISP Gateway WAN IP Ping..."
+    Update-Progress -Value 0 -StatusText "Testing ISP Gateway WAN IP Ping..."
     Write-OutputBox -Text "Connecting to https://ipinfo.io API to Get WAN IP address" -Color "black"
     try {
         $response = Invoke-WebRequest -Uri "https://ipinfo.io/json" -UseBasicParsing | ConvertFrom-Json
@@ -206,7 +213,7 @@ function Test-ISPGatewayPing {
         Write-OutputBox "ISP Gateway Ping Test:" Black
         Write-OutputBox " - WAN IP: ${wanIP}" Black
         Write-OutputBox " - ISP: ${isp}" Black
-        $color = "Red"
+        $color = "Yellow"
     Write-OutputBox -Text "Trying to Ping $($wanIP)" -Color "black"
         if (Test-Connection -ComputerName $wanIP -Count 2 -Quiet) {
             $result += " - WAN IP Ping: PASSED`r`n"
@@ -220,7 +227,7 @@ function Test-ISPGatewayPing {
         $color = "Red"
     }
     Write-OutputBox $result $color
-    Update-Status -Value 100 -StatusText "Testing ISP Gateway Ping..."
+    Update-Progress -Value 100 -StatusText "Testing ISP Gateway Ping..."
     return $result.Contains("PASSED")
 }
 
@@ -368,7 +375,6 @@ function Test-PublicDNS {
 }
 
 
-
 function Test-ExternalPing {
     Update-Progress 95 "Testing External Ping..."
     $result = "External Ping Test:`r`n"
@@ -452,7 +458,10 @@ function Test-PortConnectivity {
 
 function Get-IPConfig {
 $addapter = Get-NetAdapter 
-    
+    Write-OutputBox "=== Down Interfaces ===" "Red"
+    $downAdapters = $addapter | Where-Object -Property status -NE up | Format-Table Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String
+    Write-OutputBox $downAdapters "Black"
+
     Write-OutputBox "=== Up Interfaces ===" "Green"
     $upAdapters = $addapter | Where-Object -Property status -EQ up | Format-List Name,MediaConnectionState,MacAddress,LinkSpeed,SystemName,InterfaceDescription | Out-String
     Write-OutputBox $upAdapters "Black"
@@ -461,10 +470,69 @@ $addapter = Get-NetAdapter
     $ipConfig = Get-NetIPConfiguration | Out-String
     Write-OutputBox $ipConfig "Black"
     
-    Write-OutputBox "=== Down Interfaces ===" "Red"
-    $downAdapters = $addapter | Where-Object -Property status -NE up | Format-List Name,MacAddress,LinkSpeed,InterfaceDescription | Out-String
-    Write-OutputBox $downAdapters "Black"
 }
+    
+function Test-CloudServices{
+    $success = $false
+    Update-progress -Value 0 -StatusText "Testing Cloud Services..."
+    # Addresses array 
+        $addresses = @(
+        [PSCustomObject]@{Name = "Google Public DNS"; Target = "8.8.8.8"},
+        [PSCustomObject]@{Name = "Cloudflare DNS"; Target = "1.1.1.1"},
+        [PSCustomObject]@{Name = "Quad9 DNS"; Target = "9.9.9.9"},
+        [PSCustomObject]@{Name = "OpenDNS"; Target = "208.67.222.222"},
+        [PSCustomObject]@{Name = "Google.com"; Target = "google.com"},
+        [PSCustomObject]@{Name = "Microsoft.com"; Target = "microsoft.com"},
+        [PSCustomObject]@{Name = "Amazon.com"; Target = "amazon.com"},
+        [PSCustomObject]@{Name = "Apple.com"; Target = "apple.com"},
+        [PSCustomObject]@{Name = "Facebook.com"; Target = "facebook.com"},
+        [PSCustomObject]@{Name = "X.com"; Target = "x.com"},
+        [PSCustomObject]@{Name = "Wikipedia.org"; Target = "wikipedia.org"},
+        [PSCustomObject]@{Name = "Github.com"; Target = "github.com"},
+        [PSCustomObject]@{Name = "Bing.com"; Target = "bing.com"},
+        [PSCustomObject]@{Name = "Cloudflare.com"; Target = "cloudflare.com"},
+        [PSCustomObject]@{Name = "NTP Pool"; Target = "pool.ntp.org"}
+    )
+$Success = 0
+$Failure = 0
+$results = @() # Initialize array
+Update-progress -Value 10 -StatusText "Testing Cloud Services..."
+    # 2. Loop through address list
+    foreach ($item in $addresses) {
+        $pingObject = $null
+        try {
+            $pingObject = New-Object System.Net.NetworkInformation.Ping
+            # Use $item.Target for ping
+            ($pingReply = $pingObject.Send($item.Target, 200)) | Out-Null # 200ms timeout 
+            #Add the 'Name' field as a new property to the PingReply object
+           $pingReply | Add-Member -MemberType NoteProperty -Name "ServerName" -Value $item.Name -PassThru | Out-Null
+            # Add the modified result to your array
+            $results += $pingReply
+            if ($pingReply.Status -like "Success") {$Success++}
+            else {$Failure++}
+        }
+        finally {
+            if ($pingObject -ne $null) {
+                $pingObject.Dispose()
+            }
+        }
+    }
+Update-progress -Value 30 -StatusText "Testing Cloud Services..."
+#calculate the percentage of failed tests
+$FailureRate = $Failure/($Success+$Failure)*100
+    # Convert table to string for GUI display (Doesn't work in Terminal)
+$tableOutput = $results | Format-Table ServerName, Status, Address, RoundtripTime, @{N='Time (ms)'; E={$_.RoundtripTime}} -AutoSize | Out-String
+Write-OutputBox -Text $tableOutput.Trim()
+Update-progress -Value 100 -StatusText "Testing Cloud Services..."
+if($FailureRate -gt 50){Write-OutputBox -Text "High Failure Rate: $($Failure) of $($Success)" -Color "red"
+$success = $false }
+if($FailureRate -gt 2){Write-OutputBox -Text "Moderate Failure Rate $($Failure) of $($Success)" -Color "Orange"
+$success = $true}
+if($FailureRate -lt 2 ){Write-OutputBox -Text "Normal Failure Rate" -Color "Green"
+$success = $true}
+return $success
+}
+
 
 <#-----------------------------------------Grouped Function Tests----------------------------------------#>
 function Test-DNS {
@@ -485,15 +553,15 @@ Test-DNSServersPerInterface
 function External-Tests {
 Test-ExternalPing
 Test-PortConnectivity
+Test-CloudServices
 
 }
 # Create buttons for individual tests
 $tests = @(
-    #@{Name="IP Configuration"; Func={Get-IPConfig}}, #Commented out since this has been added under advanced in the ribon but noting it hear so it's included in the all tests  button function
-    @{Name="Physical Link"; Func={Test-PhysicalLink}},
-    @{Name="DNS"; Func={Test-DNS}},
-    @{Name="GateWay"; Func={Test-GateWay}},
-    @{Name="External"; Func={External-Tests}}
+    @{Name="Physical Link"; Func={Test-PhysicalLink}; Description="Checks if the network adapter has a physical connection or that Wi-Fi radio has a data layer link"},
+    @{Name="DNS"; Func={Test-DNS}; Description="Runs all local and interface DNS resolution tests."},
+    @{Name="GateWay"; Func={Test-GateWay}; Description="Pings the local gateway and ISP gateway to verify routing."},
+    @{Name="External"; Func={External-Tests}; Description="Tests external ping and port connectivity to public servers."}
 )
 
 foreach ($test in $tests) {
@@ -503,6 +571,7 @@ foreach ($test in $tests) {
     $button.TextAlign = "MiddleCenter"
     $button.Add_Click($test.Func)
     $buttonPanel.Controls.Add($button)
+    $toolTip.SetToolTip($button, $test.Description)
 }
 
 # Create Run All Tests button
