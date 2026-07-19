@@ -107,8 +107,8 @@ $IPConfig.Add_Click({
     Get-IPConfig
 })
 
-$advancedMenu.DropDownItems.Add($flushDnsItem)
-$advancedMenu.DropDownItems.Add($IPConfig)
+$advancedMenu.DropDownItems.Add($flushDnsItem) | Out-Null
+$advancedMenu.DropDownItems.Add($IPConfig) | Out-Null
 
 # 2. Credits Menu
 $creditsMenu = New-Object System.Windows.Forms.ToolStripMenuItem
@@ -438,17 +438,24 @@ function Test-PortConnectivity {
     )
     
     foreach ($target in $testTargets) {
+        # Create a pure .NET TCP Client
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        
         try {
-            $testResult = Test-NetConnection -ComputerName $target.Host -Port $target.Port -InformationLevel Quiet -ErrorAction Stop
-            if ($testResult) {
+            # Attempt to connect (this is completely silent)
+            $tcpClient.Connect($target.Host, $target.Port)
+            
+            if ($tcpClient.Connected) {
                 $result += " - $($target.Name) ($($target.Host):$($target.Port)): PASSED`r`n"
                 $success = $true
                 $color = "Green"
-            } else {
-                $result += " - $($target.Name) ($($target.Host):$($target.Port)): FAILED`r`n"
             }
         } catch {
-            $result += " - $($target.Name) ($($target.Host):$($target.Port)): FAILED (Error: $_)`r`n"
+            # If the connection is refused or times out, it falls here
+            $result += " - $($target.Name) ($($target.Host):$($target.Port)): FAILED`r`n"
+        } finally {
+            # Always close the connection to free up resources
+            $tcpClient.Close()
         }
     }
     Write-OutputBox $result $color
